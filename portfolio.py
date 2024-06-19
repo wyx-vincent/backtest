@@ -9,9 +9,9 @@ class Portfolio:
         self.dates = []
         self.transaction_history = {}
 
-    def record_date(self, date_list):
-        self.dates = date_list
-        self.transaction_history = {date: [] for date in date_list}
+    def record_date(self, dates):
+        self.dates = dates
+        self.transaction_history = {date: [] for date in dates}
 
     def buy(self, date, asset, price, quantity, leverage=1):
         buying_power = self.cash * leverage

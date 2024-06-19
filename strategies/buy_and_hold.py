@@ -1,8 +1,11 @@
-from ..portfolio import Portfolio
+import pandas as pd
+
+from portfolio import Portfolio
 from .strategy import Strategy
 
 class BuyAndHold(Strategy):
-    def __init__(self, asset: str):
+    def __init__(self, asset: str, underlying_data: pd.DataFrame, option_data: pd.DataFrame = None):
+        super().__init__(underlying_data, option_data)
         self.asset = asset
         self.bought = False
     
