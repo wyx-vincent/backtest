@@ -22,10 +22,10 @@ strike_selection_config = {
     'put_K_multiplier': 1,              # Multiplier applied to the base price before rounding to determine put strike price.
     'put_K_method': 'floor',            # Method to round the calculated put strike price. Options: 'floor' or 'ceil'.
     'put_K_offset': -4,                 # Numeric offset added after rounding to adjust the put strike price.
-                                        # Example: put strike = floor(df['Open'] * 1 - 4
+                                        # Example: put strike = floor(df['Open'] * 1) - 4
     'call_K_multiplier': 1.005,
     'call_K_method': 'floor',
-    'call_K_offset': 0                  # Example: call strike = floor(df['Open'] * 1.005 - 0
+    'call_K_offset': 0                  # Example: call strike = floor(df['Open'] * 1.005) - 0
 }
 
 
