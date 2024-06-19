@@ -37,3 +37,6 @@ temp.py
 
 # MacOS
 .DS_Store
+
+# Ignore .gitignore.save file
+.gitignore.save
