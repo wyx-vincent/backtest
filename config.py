@@ -5,7 +5,7 @@
 # 4) ETF dividends were not included in calculation
 # 5) No fund distribution/payout to fund investors
 # 6) Overnight cost changes are not hedged
-portfolio_initial_cash = 1000000        # unsed for now 
+portfolio_initial_cash = 1000000        # unused for now 
 
 
 # option parameters
