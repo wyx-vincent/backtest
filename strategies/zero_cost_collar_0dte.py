@@ -26,4 +26,8 @@ class ZeroCostCollar0DTE(Strategy):
         pass
 
 
+    def execute(self):
+        pass
+        
+
 

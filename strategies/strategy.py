@@ -1,6 +1,6 @@
 import pandas as pd
 
-from utils import *
+from utils import calculate_strike
 
 class Strategy:
     def __init__(self, underlying_data, option_data=None):

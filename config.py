@@ -5,7 +5,19 @@
 # 4) ETF dividends were not included in calculation
 # 5) No fund distribution/payout to fund investors
 # 6) Overnight cost changes are not hedged
+# assume no margin requirements when short selling
+# assume can borrow cash without limit
+# assume 0 interest rates in short selling and buying with leverage
+
+
 portfolio_initial_cash = 1000000        # unused for now 
+
+portolio_weights_config = {
+    'equity': 0.7,
+    'option': 0.2,
+    'cash': 0.05,
+    'mmf': 0.05
+}
 
 
 # option parameters

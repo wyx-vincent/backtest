@@ -5,7 +5,7 @@ import numpy as np
 import time
 
 from config import *
-from option_functions import blackscholes_price
+from utils.option_functions import blackscholes_price
 
 
 
