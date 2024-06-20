@@ -14,7 +14,6 @@ def main_function():
 
     # instantiation
     my_portfolio = Portfolio(portfolio_initial_cash)
-    my_portfolio.record_date(spy_df['Date'])
     my_strategy = ZeroCostCollar0DTE(spy_df, options_df)
     env = Backtest(my_portfolio, spy_df, options_df)
 

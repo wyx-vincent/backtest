@@ -6,17 +6,18 @@
 # 5) No fund distribution/payout to fund investors
 # 6) Overnight cost changes are not hedged
 
-# assume can borrow cash without limit
+# the code supports buying assets with leverage, but borrow limit has not been set up.
 # assume 0 interest rates in short selling and buying with leverage
+# no transaction fees
 
 
 portfolio_initial_cash = 1000000        # unused for now 
 
-portolio_weights_config = {
-    'equity': 0.7,
-    'option': 0.2,
-    'cash': 0.05,
-    'mmf': 0.05
+portolio_weights_config = {             # have not implement weight check function and rebalance function
+    'equity': 0.6,
+    'option': 0,
+    'cash': 0.4,
+    'mmf': 0
 }
 
 
@@ -40,4 +41,4 @@ strike_selection_config = {
     'call_K_offset': 0                  # Example: call strike = floor(df['Open'] * 1.005) - 0
 }
 
-
+option_contract_multiplier = 100        # not use for now, the number of shares an options contract represents

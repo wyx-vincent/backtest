@@ -1,21 +1,27 @@
 import pandas as pd
 
 from utils import calculate_strike
+from portfolio import Portfolio
 
 class Strategy:
-    def __init__(self, underlying_data, option_data=None):
-        self.underlying_data = underlying_data
-        self.option_data = option_data
+    def __init__(self, portfolio: Portfolio, asset: str, asset_data: pd.DataFrame):
+        if not isinstance(portfolio, Portfolio):
+            raise ValueError("portfolio must be an instance of Portfolio")
+        self.portfolio = portfolio
+        self.asset = asset
+        self.asset_data = asset_data
+        self.option_data = None
 
 
     def add_option_data(self, option_data):
         self.option_data = option_data
 
 
-    def select_and_update_options(self, backtest_main_df: pd.DataFrame, selection_rules: dict):
+    def select_and_update_options(self, backtest_main_df: pd.DataFrame, selection_rules: dict, option_data: pd.DataFrame):
         """
         this function will select options based on selection_rules defined by users and add option columns to Backtest.main_df by returning result_df
         """
+        self.option_data = option_data
         result_df = backtest_main_df.copy()
 
         for option_type in ['call', 'put']:

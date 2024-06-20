@@ -3,12 +3,16 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from portfolio import Portfolio
+from strategies.strategy import Strategy
 
 
 class Backtest:
-    def __init__(self, portfolio, underlying_data, option_data=None, buy_leverage=1, sell_leverage=1):
+    def __init__(self, portfolio: Portfolio, underlying_data, option_data=None, buy_leverage=1, sell_leverage=1):
         self.portfolio = portfolio
+        self.portfolio.record_date(underlying_data['Date'].values)
         self.main_df = underlying_data.copy()
+        self.dates = underlying_data['Date']
         self.option_data = option_data
         self.buy_leverage = buy_leverage
         self.sell_leverage = sell_leverage
@@ -61,13 +65,11 @@ class Backtest:
         self.main_df.to_csv(file_path)
 
 
-    def run():
-        # record_date
-        # loop date
-            # execute strategy
-            # update port_value
-            # check weights
-        pass
+    def run(self, Strategy):
+        for index, row in self.main_df.iterrows():
+            Strategy.execute(row)
+
+
 
     '''
 

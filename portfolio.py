@@ -31,7 +31,15 @@ class Portfolio:
 
     @property
     def positions(self):
-        return self._positions
+        # Create a new dictionary that only includes items (assets) with non-zero values (positions)
+
+        # Remove entries where the value is 0 at the asset level
+        filtered_positions = {asset_class: {asset: value for asset, value in assets.items() if value != 0}
+                              for asset_class, assets in self._positions.items()}
+        # Remove any asset classes that are now empty
+        filtered_positions = {asset_class: assets for asset_class, assets in filtered_positions.items() if assets}
+    
+        return filtered_positions
 
 
     def record_date(self, dates):
@@ -58,34 +66,34 @@ class Portfolio:
 
     @ACV.validate_asset_class
     def has_asset_class(self, asset_class):
-        return asset_class in self.positions 
+        return asset_class in self._positions 
     
 
     @ACV.validate_asset_class
     def has_asset(self, asset_class, asset):
-        return asset in self.positions[asset_class]
+        return asset in self._positions[asset_class]
     
 
     @ACV.validate_asset_class
     def update_positions(self, asset_class, asset, quantity_change):
         if not self.has_asset_class(asset_class):
-            self.positions[asset_class] = {}
+            self._positions[asset_class] = {}
         if not self.has_asset(asset_class, asset):
-            self.positions[asset_class][asset] = 0
-        self.positions[asset_class][asset] += quantity_change
+            self._positions[asset_class][asset] = 0
+        self._positions[asset_class][asset] += quantity_change
 
 
     @ACV.validate_asset_class
     def enough_quantity(self, asset_class, asset, quantity_to_sell=None, quantity_to_cover_short=None):
-        cond1 = self.has_asset(asset_class)
+        cond1 = self.has_asset_class(asset_class)
         cond2 = self.has_asset(asset_class, asset)
         if quantity_to_sell is None and quantity_to_cover_short is None:
             raise Exception('Order quantity must be defined')
         if quantity_to_sell is not None:     # sell
-            cond3 = self.positions[asset_class][asset] >= quantity_to_sell
+            cond3 = self._positions[asset_class][asset] >= quantity_to_sell
         if quantity_to_cover_short is not None:     # cover short
             neg_quantity = -quantity_to_cover_short
-            cond3 = self.positions[asset_class][asset] <= neg_quantity
+            cond3 = self._positions[asset_class][asset] <= neg_quantity
 
         return cond1 and cond2 and cond3
 
@@ -97,15 +105,15 @@ class Portfolio:
         notional_cost = price * quantity
         cash_needed = notional_cost / leverage
         cash_borrowed  = notional_cost - cash_needed
-        if self.cash > cash_needed:
-            self.cash -= cash_needed
+        if self._cash > cash_needed:
+            self._cash -= cash_needed
             self.update_positions(asset_class, asset, quantity_change=quantity)
             if cash_borrowed > 0:
-                self.cash_liability += cash_borrowed
+                self._cash_liability += cash_borrowed
             self.transaction_history[date].append(f"bought {quantity} {asset} at {price} on {date}.")
         else:
             error = (f"Not enough buying power to buy {quantity} {asset} at {price} on {date}. "
-                     f"Available cash: {self.cash}, Required: {cash_needed}, Leverage: {leverage}")
+                     f"Available cash: {self._cash}, Required: {cash_needed}, Leverage: {leverage}")
             raise Exception(error)
 
 
@@ -115,12 +123,12 @@ class Portfolio:
         Portfolio.check_positive_quantity(quantity)
         if self.enough_quantity(asset_class, asset, quantity_to_sell=quantity):
             proceeds = price * quantity
-            self.cash += proceeds
+            self._cash += proceeds
             self.update_positions(asset_class, asset, quantity_change=-quantity)
-            self.transaction_history[date].append(f"sold {quantity} {asset} at {price} on {date}, remaining quantity: {self.positions[asset]}")
+            self.transaction_history[date].append(f"sold {quantity} {asset} at {price} on {date}, remaining quantity: {self._positions[asset_class][asset]}")
         else:
             error = (f"Not enough {asset} to sell at {price} on {date}. "
-                     f"Available: {self.positions.get(asset, 0)}, Intend to sell: {quantity}")
+                     f"Available: {self._positions[asset_class].get(asset, 0)}, Intend to sell: {quantity}")
             raise Exception(error)
 
 
@@ -131,42 +139,55 @@ class Portfolio:
         notional_proceed = price * quantity
         margin = notional_proceed / leverage
 
-        if self.cash > margin:
-            self.cash -= margin
-            self.cash += notional_proceed
+        if self._cash > margin:
+            self._cash -= margin
+            self._cash += notional_proceed
             self.update_positions(asset_class, asset, quantity_change=-quantity)
             self.transaction_history[date].append(f"shorted {quantity} {asset} at {price} on {date}.")
         else:
             error = (f"Not enough shorting power to short {quantity} {asset} at {price} on {date}. "
-                     f"Available cash: {self.cash}, Required magin: {margin}, Leverage: {leverage}")
+                     f"Available cash: {self._cash}, Required magin: {margin}, Leverage: {leverage}")
             raise Exception(error)
         
 
     @ACV.validate_asset_class
     def cover_short(self, date, asset_class, asset, price, quantity):
+        """
+        After short selling, the quantity in portfolio.positions is negative.
+        use positive quantity in this function to cover previous short positions.
+        """
         self.check_date(date)
         Portfolio.check_positive_quantity(quantity)
-        if self.enough_quantity(asset_class, asset, quantity_to_sell=quantity):
-            self.buy(date, asset, asset_class, price, quantity)
+        if self.enough_quantity(asset_class, asset, quantity_to_cover_short=quantity):
+            self.buy(date, asset_class, asset, price, quantity)
         else:
-            error = (f"The order quantity is larger than the short position in {asset}"
-                     f"Short position: {self.positions.get(asset, 0)}, Intend to cover: {quantity}")
+            error = (f"The order quantity is larger than the short position in {asset}. "
+                     f"Short position: {self._positions[asset_class].get(asset, 0)}, Intend to cover: {quantity}")
             raise Exception(error)
         
 
     def get_port_value(self, asset_price_dict):
-        total_value = self.cash - self.cash_liability
+        total_value = self._cash - self._cash_liability
 
-        for asset, quantity in self.positions.items():
-            if quantity == 0:
-                continue
-            if asset in asset_price_dict:
-                total_value += asset_price_dict[asset] * quantity
-            else:
-                raise Exception(f"Asset {asset} in positions is not in asset_price_dict")
+        for asset_class in asset_price_dict:
+            ACV.is_valid_asset_class(asset_class)
+
+            for asset, quantity in self._positions[asset_class].items():
+                if quantity == 0:
+                    continue
+                if asset in asset_price_dict[asset_class]:
+                    total_value += asset_price_dict[asset_class][asset] * quantity
+                else:
+                    raise Exception(f"Asset {asset} in positions is not in asset_price_dict")
 
         return total_value
     
 
     def check_weights():
         pass
+
+
+    def print_transaction_history(self):
+        for date, transactions in self.transaction_history.items():
+            if transactions:
+                print(f'{date}: {transactions}')

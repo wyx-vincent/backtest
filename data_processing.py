@@ -17,7 +17,7 @@ def get_spy_data():
     return spy_data
 
 
-def generate_option_chain(underlying_price_df: pd.DataFrame, time_to_expiration: float, lower_K_multiplier: float = 0.95, upper_K_multiplier: float = 1.05, generate_at: str = 'open') -> pd.DataFrame:
+def generate_option_chain(underlying_price_df: pd.DataFrame, time_to_expiration: float, lower_K_multiplier: float = 0.97, upper_K_multiplier: float = 1.03, generate_at: str = 'open') -> pd.DataFrame:
     """
     Returns a DataFrame of option chain data for every time step in underlying_price_df
     This structure introduces some level of redundancy and does not strictly adhere to the Fourth Normal Form (4NF), 
