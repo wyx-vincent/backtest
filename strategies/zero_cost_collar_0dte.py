@@ -23,10 +23,12 @@ class ZeroCostCollar0DTE(Strategy):
         """
         Calculate how many collar options we need to hedge the downside risk of holding SPY
         """
+
         pass
 
 
     def execute(self):
+        
         pass
         
 

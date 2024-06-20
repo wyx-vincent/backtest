@@ -55,3 +55,17 @@ class AssetClassValidator:
                     raise ValueError("The function does not have an 'asset_class' parameter.")
             return func(*args, **kwargs)
         return wrapper
+
+
+def check_date(self, date):
+    if self.dates is None:
+        raise Exception("dates have not been recorded by record_date function")
+    if date not in self.dates:
+        raise ValueError(f"The given date {date} does not exist in the backtest period")
+    
+
+@staticmethod
+def check_positive_quantity(quantity):
+    if quantity <= 0:
+        raise ValueError('The quantity must be positive')
+

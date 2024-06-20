@@ -66,6 +66,7 @@ class Backtest:
         # loop date
             # execute strategy
             # update port_value
+            # check weights
         pass
 
     '''
