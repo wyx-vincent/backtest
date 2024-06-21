@@ -27,10 +27,10 @@ class Strategy:
         for option_type in ['call', 'put']:
             multiplier = selection_rules[option_type + '_K_multiplier']
             method = selection_rules[option_type + '_K_method']
-            offset = selection_rules[option_type + '_K_offset']
+            addition = selection_rules[option_type + '_K_addition']
     
             strikes = result_df[selection_rules['price_base']].apply(
-                lambda base: calculate_strike(base, multiplier, offset, method)
+                lambda base: calculate_strike(base, multiplier, addition, method)
             )
             
             col_name = f"selected_{option_type}_strike"

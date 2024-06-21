@@ -57,7 +57,7 @@ class ZeroCostCollar0DTE(Strategy):
         call_quantity = -self.portfolio.positions['option'][data['call']]       # after the negative sign, call_quantity should be a positive number
         self.portfolio.sell(date=data['current_date'], asset_class='option', asset=data['put'], price=data['put_price_close'], quantity=put_quantity)
         self.portfolio.cover_short(date=data['current_date'], asset_class='option', asset=data['call'], price=data['call_price_close'], quantity=call_quantity)
-
+        
 
     def execute(self, row_data):
         self.short_call_long_put(row_data)
