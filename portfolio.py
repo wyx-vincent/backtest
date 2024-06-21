@@ -259,7 +259,7 @@ class Portfolio:
             self.equity_exposure.append(value)
 
 
-    def record_cash(self):
+    def record_cash_exposure(self):
         self.cash_exposure.append(self._cash / self.initial_portfolio_nominal_value)
 
 
@@ -288,4 +288,4 @@ class Portfolio:
         self.record_port_value(price_dict)
         self.record_nav()
         self.record_equity_exposure(price_dict, equity)
-        self.record_cash()
+        self.record_cash_exposure()

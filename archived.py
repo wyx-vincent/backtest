@@ -9,7 +9,7 @@ from utils.option_functions import *
 
 
 """
-unfinished work, do not run this file
+Archived work, do not run this file
 
 """
 
@@ -41,10 +41,6 @@ backtest_df['call_value_at_close'] = np.maximum(backtest_df['Close'] - backtest_
 backtest_df['put_value_at_close'] = np.maximum(backtest_df['put_strike'] - backtest_df['Close'], 0)
 backtest_df['collar_payoff'] = backtest_df['put_value_at_close'] - backtest_df['call_value_at_close']
 backtest_df['collar_profit'] = backtest_df['collar_payoff'] - backtest_df['collar_cost']
-
-'''
-
-
 
 
 plt.hist(backtest_df['collar_cost'], bins=40, color='blue', alpha=0.7)
@@ -94,3 +90,5 @@ plt.show()
 np.min(backtest_df['overnight_return'].values)
 
 backtest_df.to_csv('backtest_df.csv', index=True)
+
+'''

@@ -2,9 +2,9 @@ initial_portfolio_nominal_value = 1e6
 collateral_ratio = 1                    # collateral_ratio: the ratio of total assets deposited to initial_portfolio_nominal_value. The portion that is larger than 1 will be used as cash
 portolio_weights_config = {             # this is just initial weights, have not implement weight_check function and rebalance function
     'equity': 0.95,
-    'option': 0,
     'cash': 0.05,
-    'mmf': 0
+    'option': 0,                        # not used for now
+    'mmf': 0                            # not used for now
 }
 
 
