@@ -1,78 +1,71 @@
 from datetime import datetime, timedelta
 
-import pandas as pd
-from tqdm import tqdm
 from polygon import RESTClient
 
-class Option:
 
-    api_key = ''
+def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: float, date: str, bar_multiplier: int=3, price_type: str='vwap'):
+    
+    """
+    Retrieve the price of a 0DTE (Zero Days to Expiration) option at market open using the Polygon.io API.
+
+    Parameters
+    ----------
+    underlying_ticker : str
+        The ticker of the underlying asset for the option.
+    
+    option_type : str
+        The type of option, either 'call' or 'put'.
+    
+    strike : float
+        The strike price of the option.
+    
+    date : str
+        The date for which the option price is queried, in the format 'yyyy-mm-dd'. This is also the expiration date of the 0DTE option.
+    
+    bar_multiplier : int, optional
+        The duration of each bar in seconds. This defines the time span for the aggregated bar data. Default is 3 seconds.
+    
+    price_type : str, optional
+        The price type used to determine the market ”opening price“. Possible values are 'open', 'high', 'low', 'close', and 'vwap'. Default is 'vwap'.
+        'vwap' is the volume weighted average price, calculated by dividing the total dollar amount traded by the total volume traded during a bar.
+
+    Returns
+    -------
+    float
+        The price of the specified option at market open.
+
+    Example
+    -------
+    If `bar_multiplier` is set to 3 and `price_type` is 'vwap', the function will return the volume weighted average price within the first 3 seconds after the market opens at 9:30 AM ET.
+    """
+
+    if option_type not in ['call', 'put']:
+        raise ValueError("option type input is wrong, please use either 'call' or 'put'. ")
+    
+    if price_type not in ['open', 'high', 'low', 'close', 'vwap']:
+        raise ValueError("price type input is wrong, please use one of ['open', 'high', 'low', 'close', 'vwap']. ")
+
+    
+    api_key = 'MPkBRXXyfleZXSJQp8_bOsKuqo2Wi_Gk'
     client = RESTClient(api_key=api_key)
 
-    def __init__(self, underlying_ticker, start_date, end_date):
-        self.underlying_ticker = underlying_ticker
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-        self.contracts = None
-        self.trades = None
-        self.bars = None
-        self.quotes = None
-
-    def get_contracts(self, contract_limit=1000):
-        self.contracts = pd.DataFrame()
-        as_of = self.start_date
-        step = 5
-        total_iterations = int((self.end_date - as_of).days / step) + 1
-        with tqdm(total=total_iterations, desc="get contracts") as pbar:
-            while as_of <= self.end_date:
-                request = self.client.list_options_contracts(underlying_ticker=self.underlying_ticker, as_of=str(as_of),
-                                                             expired=False, limit=contract_limit, raw=False)
-                data = pd.DataFrame.from_records([vars(c) for c in request])
-                self.contracts = pd.concat([self.contracts, data])
-                self.contracts = self.contracts.drop_duplicates(subset=['ticker'])
-                as_of += timedelta(days=step)
-                pbar.update(1)
-        self.contracts = self.contracts.reset_index(drop=True)
-
-    def get_trades(self, contract_id, trade_limit=50000):
-        request = self.client.list_trades(ticker=contract_id, timestamp_gte=str(self.start_date),
-                                          timestamp_lte=str(self.end_date), limit=trade_limit, sort='timestamp',
-                                          order='asc', raw=False)
-        self.trades = [vars(t) for t in request]
-
-    def get_quotes(self, contract_id, quote_limit=50000):
-        request = self.client.list_quotes(ticker=contract_id, timestamp_gte=str(self.start_date),
-                                          timestamp_lte=str(self.end_date), limit=quote_limit, sort='timestamp',
-                                          order='asc', raw=False)
-        self.quotes = [vars(q) for q in request]
-
-    def get_bars(self, contract_id, multiplier, freq, bar_limit=50000, adjusted=False):
-        request = self.client.list_aggs(ticker=contract_id, multiplier=multiplier, timespan=freq,
-                                        from_=str(self.start_date), to=str(self.end_date), adjusted=adjusted,
-                                        sort='asc', limit=bar_limit, raw=False)
-        self.bars = [vars(b) for b in request]
+    underlying_ticker_str = underlying_ticker.upper()
+    date_str = date.replace('-', '')[2:]
+    type_str = option_type[0].upper()
+    strike_str = f"{int(strike*1000):08d}"
+    ticker = 'O:' + underlying_ticker_str + date_str + type_str + strike_str
+    
+    date_obj = datetime.strptime(date, '%Y-%m-%d')
+    market_open_dt = date_obj + timedelta(hours=9, minutes=30)
+    bar_begin = int(market_open_dt.timestamp() * 1000)      # ms timestamp
+    bar_end = bar_begin + 1000 * bar_multiplier
+    request = client.list_aggs(ticker, multiplier=bar_multiplier, timespan='second', from_=bar_begin, to=bar_end)
+    bars = [b for b in request]
+    if len(bars) == 0:
+        error = (f"No data available or unsuccessful API request. "
+                 f"option ticker: {ticker}, multiplier: {bar_multiplier}, timespan: 'second', from: {bar_begin}, to: {bar_end}. ")
+        raise Exception(error)
+    
+    return getattr(bars[0], price_type)
 
 
-class Stock:
-
-    api_key = ''
-    client = RESTClient(api_key=api_key)
-
-    def __init__(self, underlying_ticker, start_date, end_date):
-        self.underlying_ticker = underlying_ticker
-        self.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-        self.end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-        self.trades = None
-        self.bars = None
-
-    def get_trades(self, trade_limit=50000):
-        request = self.client.list_trades(ticker=self.underlying_ticker, timestamp_gte=str(self.start_date),
-                                          timestamp_lte=str(self.end_date), limit=trade_limit, sort='timestamp',
-                                          order='asc', raw=False)
-        self.trades = [vars(t) for t in request]
-
-    def get_bars(self, multiplier, freq, bar_limit=50000, adjusted=False):
-        request = self.client.list_aggs(ticker=self.underlying_ticker, multiplier=multiplier, timespan=freq,
-                                        from_=str(self.start_date), to=str(self.end_date), adjusted=adjusted,
-                                        sort='asc', limit=bar_limit, raw=False)
-        self.bars = [vars(b) for b in request]

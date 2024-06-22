@@ -5,7 +5,7 @@ from .buy_and_hold import BuyAndHold
 from utils.asset_class_validator import AssetClassValidator as ACV
 
 class ZeroCostCollar0DTE(Strategy):
-    def __init__(self, portfolio, underlying_asset: str, asset_data: pd.DataFrame, option_data: pd.DataFrame):
+    def __init__(self, portfolio, underlying_asset: str, asset_data: pd.DataFrame, option_data: pd.DataFrame=None):
         super().__init__(portfolio, underlying_asset, asset_data)
         self.underlying_asset = underlying_asset
         self.option_data = option_data
