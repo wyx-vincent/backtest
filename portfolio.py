@@ -144,7 +144,7 @@ class Portfolio:
             self.transaction_history[date].append(f"bought {quantity} {asset} at {round(price, 4)} on {date}.")
         else:
             error = (f"Not enough buying power to buy {quantity} {asset} at {round(price, 4)} on {date}. "
-                     f"Available cash: {self._cash}, Required: {cash_needed}, Leverage: {leverage}")
+                     f"Available cash: {round(self._cash, 4)}, Required: {round(cash_needed, 4)}, Leverage: {leverage}")
             raise Exception(error)
 
 
@@ -177,7 +177,7 @@ class Portfolio:
             self.transaction_history[date].append(f"shorted {quantity} {asset} at {round(price, 4)} on {date}.")
         else:
             error = (f"Not enough cash to short {quantity} {asset} at {round(price, 4)} on {date}. "
-                     f"Available cash: {self._cash}, Required magin: {required_margin}, Leverage: {leverage}")
+                     f"Available cash: {round(self._cash, 4)}, Required magin: {round(required_margin, 4)}, Leverage: {leverage}")
             raise Exception(error)
         
 
@@ -202,8 +202,8 @@ class Portfolio:
         cover_ratio = quantity / -self._positions[asset_class][asset]   # asset position should be negative
         cash_required_to_cover = price * quantity - self._margin[asset_class][asset] * cover_ratio
         if self._cash < cash_required_to_cover:
-            error3 = (f"Trying to cover short position in {asset}, but cash is not enough. "
-                        f"Total cash needed: {price * quantity}, margin account balance: {self._margin[asset_class][asset]}, 'cash balance: {self._cash}")
+            error3 = (f"Trying to cover short position in {asset} on {date}, but cash is not enough. "
+                        f"Total cash needed: {round(price * quantity, 4)}, margin account balance: {round(self._margin[asset_class][asset], 4)}, 'cash balance: {round(self._cash, 4)}")
             raise Exception(error3)
 
         # it's ok to release fund from margin account to cash account before calling 'buy' function, as we have checked we have enough cash above

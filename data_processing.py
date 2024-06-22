@@ -10,13 +10,13 @@ from utils import convert_date_format
 
 
 
-def get_spy_data():
+def get_spy_data(start_date, end_date):
     current_dir = os.getcwd()
     spy_data_path = os.path.join(current_dir, 'data', 'SPY.csv')
     spy_data = pd.read_csv(spy_data_path)
-    spy_data = convert_date_format(spy_data, 'Date')
+    filtered_spy_data = spy_data[(spy_data['Date'] >= start_date) & (spy_data['Date'] <= end_date)]
 
-    return spy_data
+    return filtered_spy_data
 
 
 def generate_option_chain(underlying_price_df: pd.DataFrame, bs_config: dict, lower_K_multiplier: float = 0.95, upper_K_multiplier: float = 1.05, spot_price: str = 'open') -> pd.DataFrame:

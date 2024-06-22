@@ -1,8 +1,11 @@
+start_date = '2022-11-11'               # It seems like polygon.io doesn’t have all 0DTE data until 2022-11-10.
+end_date = '2024-06-21'
+
 initial_portfolio_nominal_value = 1e6 
 collateral_ratio = 1                    # collateral_ratio: the ratio of total assets deposited to initial_portfolio_nominal_value. The portion that is larger than 1 will be used as cash
 portolio_weights_config = {             # this is just initial weights, have not implement weight_check function and rebalance function
-    'equity': 0.92,
-    'cash': 0.08,
+    'equity': 0.75,
+    'cash': 0.25,
     'option': 0,                        # not used for now
     'mmf': 0                            # not used for now
 }
@@ -18,14 +21,14 @@ strike_selection_config = {
                                         # Example: put strike = floor(df['Open'] * 1) + (-4)
     'call_K_multiplier': 1.005,
     'call_K_method': 'floor',
-    'call_K_addition': 0                  # Example: call strike = floor(df['Open'] * 1.005) + 0
+    'call_K_addition': 0                 # Example: call strike = floor(df['Open'] * 1.005) + 0
 }
 
 
 # option parameters
 bs_config = {
     'q': 0,                                   # dividend yield in Black–Scholes model, will use discrete dividends
-    'vol': 0.2,                               # assume constant vol
+    'vol': 0.2,                               # assume constant vol, a higher constant vol would significantly underprices collar cost and overprices its payoff
     'r': 0.05,                                # assume constant risk-free rate
     'time_to_expiration': 1/365               # 0DTE
 }

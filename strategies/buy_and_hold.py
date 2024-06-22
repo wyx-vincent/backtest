@@ -15,7 +15,7 @@ class BuyAndHold(Strategy):
     def execute(self, execution_date: str, execution_price: float, quantity: float, leverage: float=1):
         if not self.bought:
             self.portfolio.buy(execution_date, self.asset_class, self.asset, execution_price, quantity, leverage)
-            self.bought = True
+            self.bought = True 
         else:
             raise Exception('The asset was bought before, BuyAndHold strategy is used to buy asset only once')
 

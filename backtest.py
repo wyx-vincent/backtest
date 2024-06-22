@@ -3,9 +3,12 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+tqdm.pandas()
+
 from portfolio import Portfolio
 from strategies.strategy import Strategy
-from utils.polygon_functions import get_0DTE_price_at_open
+from utils.polygon_functions import get_0DTE_price_at_open, DataNotAvailableError
 from utils import blackscholes_price
 
 
@@ -35,63 +38,54 @@ class Backtest:
             self.main_df[f"{option_type}_price_at_{spot_price.lower()}"] = temp_df['Option_Value']
 
 
-    def get_option_price_polygon(self, underlying_ticker: str, spot_price: str, bs_config: dict):
-        for option_type in ['call', 'put']:
-            try:
-                self.main_df[option_type + '_price_at_' + spot_price] = self.main_df.apply(
-                    lambda row: get_0DTE_price_at_open(
-                        underlying_ticker,
-                        option_type,
-                        strike = row['selected_' + option_type + '_strike'],
-                        date = row['Date'],
-                        bar_multiplier = 3, 
-                        price_type = 'vwap'
-                    ),
-                    axis=1
-                )
-
-            except Exception:
-                # if data not available, use BS model
-                self.main_df[option_type + '_price_at_' + spot_price] = self.main_df.apply(
-                    lambda row: blackscholes_price(
-                        K = row['selected_' + option_type + '_strike'],
-                        S = row[spot_price.title()],
-                        T = bs_config['time_to_expiration'],
-                        vol = bs_config['vol'],
-                        r = bs_config['r'],
-                        q = bs_config['q'],
-                        callput = option_type
-                    ),
-                    axis=1
-                )
-
-
-
-
-    def try_get_0DTE_price(self, underlying_ticker, option_type, row, exception_dates):
+    def try_get_polygon_price(self, underlying_ticker, option_type, row, bar_multiplier, bar_timespan, price_type, spot_price, bs_config, bs_days):
         try:
             return get_0DTE_price_at_open(
                 underlying_ticker,
                 option_type,
                 strike=row['selected_' + option_type + '_strike'],
                 date=row['Date'],
-                bar_multiplier=3,
-                price_type='vwap'
+                bar_multiplier=bar_multiplier,
+                bar_timespan=bar_timespan,
+                price_type=price_type
             )
-        except Exception as e:
-            exception_dates.append(row['Date'])  # Append the date when exception occurred
-            print(f"An error occurred on {row['Date']}: {str(e)}")  # Optionally print/log the error
-            return None  # Return None or a default value if needed
+        except DataNotAvailableError:
+            bs_days.append(f"{row['Date']} for {option_type}, K={row['selected_' + option_type + '_strike']}")
+            return blackscholes_price(
+                K=row['selected_' + option_type + '_strike'],
+                S=row[spot_price.title()],
+                T=bs_config['time_to_expiration'],
+                vol=bs_config['vol'],
+                r=bs_config['r'],
+                q=bs_config['q'],
+                callput=option_type
+            )
 
 
-    def get_option_price_polygon_return_error_dates(self, underlying_ticker: str, spot_price: str):
-        exception_dates = []  # List to store dates when exceptions occur
+    def get_option_price(self, underlying_ticker: str, bar_multiplier: int, bar_timespan: str, price_type: str, spot_price: str, bs_config: dict):
+        bs_days = []
         for option_type in ['call', 'put']:
-            self.main_df[option_type + '_price_at_' + spot_price] = self.main_df.apply(
-                lambda row: self.try_get_0DTE_price(underlying_ticker, option_type, row, exception_dates),
-                axis=1
+            tqdm.pandas(desc=f"Getting {option_type} price data")
+            self.main_df[option_type + '_price_at_' + spot_price] = self.main_df.progress_apply(
+                lambda row: self.try_get_polygon_price(
+                    underlying_ticker,
+                    option_type,
+                    row,
+                    bar_multiplier,
+                    bar_timespan,
+                    price_type,
+                    spot_price,
+                    bs_config,
+                    bs_days
+                ),
+                axis=1,
             )
-        return exception_dates
+        if bs_days:
+            print("Used BS model on the following days:")
+            for day in bs_days:
+                print(day)
+        else:
+            print("BS model is not used. All prices are sourced from Polygon.io.")
 
 
     def update_option_price_at_close(self):

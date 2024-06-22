@@ -3,7 +3,12 @@ from datetime import datetime, timedelta
 from polygon import RESTClient
 
 
-def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: float, date: str, bar_multiplier: int=3, price_type: str='vwap'):
+class DataNotAvailableError(Exception):
+    """Exception raised when the required data is not available from the API."""
+    pass
+
+
+def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: float, date: str, bar_multiplier: int=3, bar_timespan: str='second', price_type: str='vwap'):
     
     """
     Retrieve the price of a 0DTE (Zero Days to Expiration) option at market open using the Polygon.io API.
@@ -25,6 +30,9 @@ def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: flo
     bar_multiplier : int, optional
         The duration of each bar in seconds. This defines the time span for the aggregated bar data. Default is 3 seconds.
     
+    bar_timespan : str, optionl
+        The time span of a bar data, Possible values are second, minute, hour, day
+
     price_type : str, optional
         The price type used to determine the market ”opening price“. Possible values are 'open', 'high', 'low', 'close', and 'vwap'. Default is 'vwap'.
         'vwap' is the volume weighted average price, calculated by dividing the total dollar amount traded by the total volume traded during a bar.
@@ -55,17 +63,19 @@ def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: flo
     strike_str = f"{int(strike*1000):08d}"
     ticker = 'O:' + underlying_ticker_str + date_str + type_str + strike_str
     
-    date_obj = datetime.strptime(date, '%Y-%m-%d')
-    market_open_dt = date_obj + timedelta(hours=9, minutes=30)
-    bar_begin = int(market_open_dt.timestamp() * 1000)      # ms timestamp
-    bar_end = bar_begin + 1000 * bar_multiplier
-    request = client.list_aggs(ticker, multiplier=bar_multiplier, timespan='second', from_=bar_begin, to=bar_end)
+    # date_obj = datetime.strptime(date, '%Y-%m-%d')
+    # market_open_dt = date_obj + timedelta(hours=9, minutes=30)
+    # bar_begin_time = int(market_open_dt.timestamp() * 1000)      # ms timestamp, do not use timestamp to request data from polygon.io, it's not stable
+    request = client.list_aggs(ticker, multiplier=bar_multiplier, timespan='second', from_=date, to=date)
     bars = [b for b in request]
     if len(bars) == 0:
         error = (f"No data available or unsuccessful API request. "
-                 f"option ticker: {ticker}, multiplier: {bar_multiplier}, timespan: 'second', from: {bar_begin}, to: {bar_end}. ")
-        raise Exception(error)
+                 f"option ticker: {ticker}, multiplier: {bar_multiplier}, timespan: 'second', from: {date}, to: {date}. ")
+        raise DataNotAvailableError(error)
     
-    return getattr(bars[0], price_type)
+    price = getattr(bars[0], price_type)
+    # print(ticker, price)
+    
+    return price
 
 
