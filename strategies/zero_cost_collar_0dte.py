@@ -1,8 +1,12 @@
 import pandas as pd
+import numpy as np
+from tqdm import tqdm
+tqdm.pandas()
 
 from .strategy import Strategy
 from .buy_and_hold import BuyAndHold
-from utils.asset_class_validator import AssetClassValidator as ACV
+from utils import get_0DTE_open_price_given_strikes, find_indices_closest_to_zero_sum, AssetClassValidator as ACV
+
 
 class ZeroCostCollar0DTE(Strategy):
     def __init__(self, portfolio, underlying_asset: str, asset_data: pd.DataFrame, option_data: pd.DataFrame=None):
@@ -42,6 +46,29 @@ class ZeroCostCollar0DTE(Strategy):
         }
 
         return data
+    
+
+    def add_zero_cost_collar(self, backtest_main_df, zero_cost_search_config, bs_config, bar_multiplier, bar_timespan, price_type):
+        backtest_main_df['selected_call_strike'] = np.nan
+        backtest_main_df['call_price_at_open'] = np.nan
+        backtest_main_df['selected_put_strike'] = np.nan
+        backtest_main_df['put_price_at_open'] = np.nan
+
+        for index, row in tqdm(backtest_main_df.iterrows(), total=backtest_main_df.shape[0], desc="Searching for zero-cost collar"):
+            spot_price = row['Open']
+            date = row['Date']
+            lower_value = spot_price * (1 + zero_cost_search_config['lower_bound'])
+            upper_value = spot_price * (1 + zero_cost_search_config['upper_bound'])
+            strikes = list(range(int(lower_value), int(upper_value) + 1))
+            price_dict = get_0DTE_open_price_given_strikes(self.underlying_asset, strikes, date, spot_price, bs_config, bar_multiplier, bar_timespan, price_type)
+            price_dict['call'] = [-price for price in price_dict['call']]
+            indices = find_indices_closest_to_zero_sum(np.array(price_dict['call']), np.array(price_dict['put']))
+            
+            backtest_main_df.loc[index, 'selected_call_strike'] = price_dict['strikes'][indices[0]]
+            backtest_main_df.loc[index, 'call_price_at_open'] = -price_dict['call'][indices[0]]     # add a negative sign because we added a negative sign 4 lines above
+            backtest_main_df.loc[index, 'selected_put_strike'] = price_dict['strikes'][indices[1]]
+            backtest_main_df.loc[index, 'put_price_at_open'] = price_dict['put'][indices[1]]
+            
 
 
     def short_call_long_put(self, row_data):

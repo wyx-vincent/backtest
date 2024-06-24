@@ -28,7 +28,7 @@ def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: flo
         The date for which the option price is queried, in the format 'yyyy-mm-dd'. This is also the expiration date of the 0DTE option.
     
     bar_multiplier : int, optional
-        The duration of each bar in seconds. This defines the time span for the aggregated bar data. Default is 3 seconds.
+        The duration of each bar in bar_timespan. This defines the time span for the aggregated bar data. Default is 3 seconds.
     
     bar_timespan : str, optionl
         The time span of a bar data, Possible values are second, minute, hour, day
@@ -53,7 +53,6 @@ def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: flo
     if price_type not in ['open', 'high', 'low', 'close', 'vwap']:
         raise ValueError("price type input is wrong, please use one of ['open', 'high', 'low', 'close', 'vwap']. ")
 
-    
     api_key = 'MPkBRXXyfleZXSJQp8_bOsKuqo2Wi_Gk'
     client = RESTClient(api_key=api_key)
 
@@ -66,11 +65,11 @@ def get_0DTE_price_at_open(underlying_ticker: str, option_type: str, strike: flo
     # date_obj = datetime.strptime(date, '%Y-%m-%d')
     # market_open_dt = date_obj + timedelta(hours=9, minutes=30)
     # bar_begin_time = int(market_open_dt.timestamp() * 1000)      # ms timestamp, do not use timestamp to request data from polygon.io, it's not stable
-    request = client.list_aggs(ticker, multiplier=bar_multiplier, timespan='second', from_=date, to=date)
+    request = client.list_aggs(ticker, multiplier=bar_multiplier, timespan=bar_timespan, from_=date, to=date)
     bars = [b for b in request]
     if len(bars) == 0:
         error = (f"No data available or unsuccessful API request. "
-                 f"option ticker: {ticker}, multiplier: {bar_multiplier}, timespan: 'second', from: {date}, to: {date}. ")
+                 f"option ticker: {ticker}, multiplier: {bar_multiplier}, timespan: {bar_timespan}, from: {date}, to: {date}. ")
         raise DataNotAvailableError(error)
     
     price = getattr(bars[0], price_type)

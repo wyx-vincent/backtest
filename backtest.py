@@ -9,7 +9,7 @@ tqdm.pandas()
 from portfolio import Portfolio
 from strategies.strategy import Strategy
 from utils.polygon_functions import get_0DTE_price_at_open, DataNotAvailableError
-from utils import blackscholes_price
+from utils import try_get_polygon_price
 
 
 class Backtest:
@@ -38,36 +38,12 @@ class Backtest:
             self.main_df[f"{option_type}_price_at_{spot_price.lower()}"] = temp_df['Option_Value']
 
 
-    def try_get_polygon_price(self, underlying_ticker, option_type, row, bar_multiplier, bar_timespan, price_type, spot_price, bs_config, bs_days):
-        try:
-            return get_0DTE_price_at_open(
-                underlying_ticker,
-                option_type,
-                strike=row['selected_' + option_type + '_strike'],
-                date=row['Date'],
-                bar_multiplier=bar_multiplier,
-                bar_timespan=bar_timespan,
-                price_type=price_type
-            )
-        except DataNotAvailableError:
-            bs_days.append(f"{row['Date']} for {option_type}, K={row['selected_' + option_type + '_strike']}")
-            return blackscholes_price(
-                K=row['selected_' + option_type + '_strike'],
-                S=row[spot_price.title()],
-                T=bs_config['time_to_expiration'],
-                vol=bs_config['vol'],
-                r=bs_config['r'],
-                q=bs_config['q'],
-                callput=option_type
-            )
-
-
     def get_option_price(self, underlying_ticker: str, bar_multiplier: int, bar_timespan: str, price_type: str, spot_price: str, bs_config: dict):
         bs_days = []
         for option_type in ['call', 'put']:
             tqdm.pandas(desc=f"Getting {option_type} price data")
             self.main_df[option_type + '_price_at_' + spot_price] = self.main_df.progress_apply(
-                lambda row: self.try_get_polygon_price(
+                lambda row: try_get_polygon_price(
                     underlying_ticker,
                     option_type,
                     row,
@@ -99,7 +75,10 @@ class Backtest:
         self.main_df.to_csv(file_path)
 
 
-    def run(self, Strategy, simulation_days):
+    def run(self, Strategy, simulation_days=None):
+        if simulation_days is None:
+            simulation_days = len(self.main_df)
+            
         start_index = self.main_df.index[0]
         end_index = start_index + simulation_days - 1
         if end_index > self.main_df.index[-1]:
