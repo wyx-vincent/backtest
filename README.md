@@ -42,7 +42,7 @@ Determine call and put strike prices using a systematic set of rules and calcula
 
 ### Portfolio and Weights Configuration
 - `initial_portfolio_nominal_value`: Initial nominal value of the portfolio, which serves as the basis for calculating the NAV.
-- `collateral_ratio`: The ratio of total assets deposited by fund investors to the initial portfolio nominal value. Any excess is utilized as cash. For example, with an initial_portfolio_nominal_value of $1,000,000 and a collateral_ratio of 1.3, investors are required to deposit $1,300,000, giving the portfolio an actual initial value of $1,300,000.
+- `collateral_ratio`: The ratio of total assets deposited by fund investors to the initial portfolio nominal value. Any excess is utilized as cash. For example, with an `initial_portfolio_nominal_value` of $1,000,000 and a `collateral_ratio` of 1.3, investors are required to deposit $1,300,000, giving the portfolio an actual initial value of $1,300,000.
 - `portfolio_weights_config`: Initial weights of each asset class within the portfolio at inception
 At market open on `start_date`, the system will purchase an amount of equity (SPY ETF) equivalent to initial_portfolio_nominal_value * equity weight. The cash portion is reserved for supporting trading 0DTE options.
 

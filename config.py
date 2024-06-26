@@ -5,16 +5,16 @@ end_date = '2024-06-25'
 initial_portfolio_nominal_value = 1e6
 collateral_ratio = 1
 portolio_weights_config = {
-    'equity': 0.8,
-    'cash': 0.2,
+    'equity': 0.5,
+    'cash': 0.5,
 }
 
 strategy_selected = 1
 
 # For Strategy 1
 zero_cost_search_config = {
-    'upper_bound': 0.015,
-    'lower_bound': -0.015
+    'upper_bound': 0.01,
+    'lower_bound': -0.01
 }
 
 # For Strategy 2
@@ -33,7 +33,7 @@ strike_selection_config = {
 # Black-Scholes Model Assumptions
 bs_config = {
     'q': 0,
-    'vol': 0.2,
+    'vol': 0.15,
     'r': 0.05,
     'time_to_expiration': 1/365,
     'spot_price_col': 'open'        
