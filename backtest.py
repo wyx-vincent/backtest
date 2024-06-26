@@ -194,6 +194,8 @@ class Backtest:
         spot_price_col: str, optional
             The column in backtest's main_df that would be used as spot price in the BS model. This is also the time point used to fetch price data
     
+        strike_bound_config:
+        
         bar_multiplier : int, optional
             The duration of each bar in bar_timespan. This defines the time span for the aggregated bar data. Default is 3 seconds.
         

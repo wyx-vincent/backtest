@@ -12,7 +12,10 @@ class Portfolio:
         total_weight = sum(portfolio_weights_config.values())
         if total_weight != collateral_ratio:
             raise ValueError(f"Total portfolio weights must sum to collateral_ratio, but the sum is {total_weight}")
-        
+        for asset_class in portfolio_weights_config:
+            if portfolio_weights_config[asset_class] > 1 and asset_class != 'cash':
+                raise ValueError(f"The initial weight of {asset_class} cannot be larger than 1. ")
+
         for asset_class in portfolio_weights_config:
             ACV.is_valid_asset_class(asset_class)
 
