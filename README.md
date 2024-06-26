@@ -97,6 +97,5 @@ The primary data source for this project is currently the Polygon API. Additiona
 
 If option price data is not available on Polygon.io at any point during backtesting, the Black-Scholes Model will be used to calculate price. In such cases, the system will print relevant information.
 
-Cboe didn’t offer SPY 0DTE every day before Nov 17. 2022. If you backtest with 0DTE options before this date, it's likely that the requested option price is calculated using the Black-Scholes Model
-Reference: https://cdn.cboe.com/resources/product_update/2022/Cboe-Options-to-List-SPY-and-QQQ-Tuesday-and-Thursday-Expiring-Weekly-Options.pdf  
+Cboe didn’t offer SPY 0DTE every day before Nov 17. 2022. If you backtest with 0DTE options before this date, it's likely that the requested option price is calculated using the Black-Scholes Model. Reference: https://cdn.cboe.com/resources/product_update/2022/Cboe-Options-to-List-SPY-and-QQQ-Tuesday-and-Thursday-Expiring-Weekly-Options.pdf  
 
