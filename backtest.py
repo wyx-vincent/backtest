@@ -7,18 +7,17 @@ from tqdm import tqdm
 tqdm.pandas()
 
 from portfolio import Portfolio
-from strategies.strategy import Strategy
-from utils.polygon_functions import get_0DTE_price_at_open, DataNotAvailableError
-from utils import try_get_polygon_price
+from utils import generate_option_ticker_vectorized
 
 
 class Backtest:
-    def __init__(self, portfolio: Portfolio, asset_data, option_data=None):
+    def __init__(self, portfolio: Portfolio, asset_data, data_api, option_data=None):
         self.portfolio = portfolio
         self.portfolio.record_date(asset_data['Date'].values)
-        self.main_df = asset_data.copy()
+        self.main_df = asset_data.copy()    # backtest details for all days, length = number of days
+        self.data_api = data_api
         self.dates = asset_data['Date']
-        self.option_data = option_data
+        self.option_data = option_data      # option chain data for all days, length = number of days * number of available/choosen options on each day
         self.issues = []
 
     
@@ -38,33 +37,7 @@ class Backtest:
             self.main_df[f"{option_type}_price_at_{spot_price.lower()}"] = temp_df['Option_Value']
 
 
-    def get_option_price(self, underlying_ticker: str, bar_multiplier: int, bar_timespan: str, price_type: str, spot_price: str, bs_config: dict):
-        bs_days = []
-        for option_type in ['call', 'put']:
-            tqdm.pandas(desc=f"Getting {option_type} price data")
-            self.main_df[option_type + '_price_at_' + spot_price] = self.main_df.progress_apply(
-                lambda row: try_get_polygon_price(
-                    underlying_ticker,
-                    option_type,
-                    row,
-                    bar_multiplier,
-                    bar_timespan,
-                    price_type,
-                    spot_price,
-                    bs_config,
-                    bs_days
-                ),
-                axis=1,
-            )
-        if bs_days:
-            print("Used BS model on the following days:")
-            for day in bs_days:
-                print(day)
-        else:
-            print("BS model is not used. All prices are sourced from Polygon.io.")
-
-
-    def update_option_price_at_close(self):
+    def update_option_price_at_expiration(self):
         self.main_df['call_price_at_close'] = np.maximum(self.main_df['Close'] - self.main_df['selected_call_strike'], 0)
         self.main_df['put_price_at_close'] = np.maximum(self.main_df['selected_put_strike'] - self.main_df['Close'], 0)
 
@@ -159,6 +132,107 @@ class Backtest:
         plt.grid(True)
         plt.legend()
         plt.show()
+
+
+    def generate_option_parameters(self, underlying_ticker, spot_price_col, strike_bound_config=None):
+        spot_price_col = spot_price_col.title()
+        
+        if strike_bound_config:
+            # corresponds to strategy 1
+            # For a specific day, generate calls first, then puts
+            spot_prices = self.main_df[spot_price_col].values
+            lower_values = spot_prices * (1 + strike_bound_config['lower_bound'])
+            upper_values = spot_prices * (1 + strike_bound_config['upper_bound'])
+            strike_ranges = [np.arange(int(low), int(high) + 1) for low, high in zip(lower_values, upper_values)]
+            n_strikes = [len(strikes) for strikes in strike_ranges]
+            expanded_strike_ranges = [np.tile(strikes, 2) for strikes in strike_ranges]  # expand for call and put. This is also the total number of options on each day
+            strikes = np.concatenate(expanded_strike_ranges)                            # total number of rows in the entire option chain data
+            option_types = np.concatenate([np.repeat(['call', 'put'], [n, n]) for n in n_strikes])
+            dates = np.repeat(self.main_df['Date'].values, [len(r) for r in expanded_strike_ranges])
+            spot_prices = np.repeat(self.main_df[spot_price_col].values, [len(r) for r in expanded_strike_ranges])
+            indices = np.repeat(self.main_df.index, [len(r) for r in expanded_strike_ranges])
+
+        else:
+            # corresponds to strategy 2
+            # Generate all calls together for all days first, then all puts
+            call_strikes = self.main_df['selected_call_strike'].values
+            put_strikes = self.main_df['selected_put_strike'].values
+            strikes = np.concatenate([call_strikes, put_strikes])
+            option_types = np.array(['call'] * len(call_strikes) + ['put'] * len(put_strikes))
+            dates = np.tile(self.main_df['Date'].values, 2)
+            spot_prices = np.tile(self.main_df[spot_price_col].values, 2)
+            indices = np.tile(self.main_df.index, 2)
+
+        underlying_tickers = np.array([underlying_ticker] * len(strikes))
+        option_tickers = generate_option_ticker_vectorized(underlying_tickers, dates, option_types, strikes)
+
+        option_data = pd.DataFrame({
+            'option_tickers': option_tickers,
+            'date_from': dates,
+            'date_to': dates,
+            'option_type': option_types,
+            'strike': strikes,
+            'spot_price': spot_prices,
+            'main_df_index': indices
+            })
+        
+        self.add_option_data(option_data)
+                
+
+
+    def get_option_price(self, underlying_ticker: str, bs_config: dict, strike_bound_config: dict=None, open_price_config: dict=None): 
+        
+        """
+        Fetch the price of a 0DTE (Zero Days to Expiration) option at market open using the Polygon.io API.
+        If price data is not available on Polygon.io, the BS model will be used to calculate price, which will print relevant info
+        
+        Parameters
+        ----------
+        underlying_ticker : str
+            The ticker of the underlying asset for the option.
+
+        spot_price_col: str, optional
+            The column in backtest's main_df that would be used as spot price in the BS model. This is also the time point used to fetch price data
+    
+        bar_multiplier : int, optional
+            The duration of each bar in bar_timespan. This defines the time span for the aggregated bar data. Default is 3 seconds.
+        
+        bar_timespan : str, optionl
+            The time span of a bar data, Possible values are second, minute, hour, day
+
+        price_type : str, optional
+            The price type used to determine the market ”opening price“. Possible values are 'open', 'high', 'low', 'close', and 'vwap'. Default is 'vwap'.
+            'vwap' is the volume weighted average price, calculated by dividing the total dollar amount traded by the total volume traded during a bar.
+
+        Example
+        -------
+        If `bar_multiplier` is set to 3 and `price_type` is 'vwap', the function will return the volume weighted average price within the first 3 seconds after the market opens at 9:30 AM ET.
+        """
+        
+        self.generate_option_parameters(underlying_ticker, bs_config['spot_price_col'], strike_bound_config)
+        self.option_data, bs_days = self.data_api.try_get_polygon_price_multithread(self.option_data, open_price_config['bar_multiplier'], open_price_config['bar_timespan'], open_price_config['price_type'], bs_config)
+       
+        for option_type in ['call', 'put']:
+            col_name = f"{option_type}_price_at_open"
+            self.main_df[col_name] = np.nan
+
+        for index, row in self.option_data.iterrows():
+            main_df_index = row['main_df_index']
+            option_type = row['option_type']
+            price = row['open_price']
+            column_name = f"{option_type}_price_at_open"
+            self.main_df.at[main_df_index, column_name] = price
+    
+        if bs_days:
+            print('')
+            print("Used BS model on the following days and options:")
+            for day in bs_days:
+                print(day)
+        else:
+            print("BS model is not used. All prices are sourced from Polygon.io.")
+
+
+
 
     """
     The followings are archived functions

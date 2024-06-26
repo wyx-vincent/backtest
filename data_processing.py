@@ -50,7 +50,7 @@ def generate_option_chain(underlying_price_df: pd.DataFrame, bs_config: dict, lo
     strike_ranges = [np.arange(start=int(price * lower_K_multiplier), stop=int(price * upper_K_multiplier) + 1) for price in underlying_price_df[generate_at]]
     n_strikes = [len(strikes) for strikes in strike_ranges]
     strike_ranges = [np.tile(strikes, 2) for strikes in strike_ranges]  # prepare for call and put
-    strikes = np.concatenate(strike_ranges)
+    flat_strikes = np.concatenate(strike_ranges)
     repeated_dates = np.repeat(underlying_price_df['Date'], [len(r) for r in strike_ranges])
     repeated_price = np.repeat(underlying_price_df[spot_price], [len(r) for r in strike_ranges])
     option_types = np.concatenate([np.repeat(['call', 'put'], [n, n]) for n in n_strikes])
@@ -59,7 +59,7 @@ def generate_option_chain(underlying_price_df: pd.DataFrame, bs_config: dict, lo
     'Date': repeated_dates,
     spot_price + '_price': repeated_price,
     'Option_type': option_types,
-    'Strike_price': strikes,
+    'Strike_price': flat_strikes,
     'Volatility': np.ones(len(repeated_dates)) * bs_config['vol'],
     'Rf': np.ones(len(repeated_dates)) * bs_config['r'],
     'Dividend_yield': np.ones(len(repeated_dates)) * bs_config['q'],

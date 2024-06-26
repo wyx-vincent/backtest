@@ -4,27 +4,24 @@ from tqdm import tqdm
 tqdm.pandas()
 
 from .strategy import Strategy
+from backtest import Backtest
 from .buy_and_hold import BuyAndHold
-from utils import get_0DTE_open_price_given_strikes, find_indices_closest_to_zero_sum, AssetClassValidator as ACV
+from utils import generate_option_ticker, find_indices_closest_to_zero_sum, AssetClassValidator as ACV
 
 
 class ZeroCostCollar0DTE(Strategy):
-    def __init__(self, portfolio, underlying_asset: str, asset_data: pd.DataFrame, option_data: pd.DataFrame=None):
+    def __init__(self, portfolio, underlying_asset: str, asset_data: pd.DataFrame):
         super().__init__(portfolio, underlying_asset, asset_data)
         self.underlying_asset = underlying_asset
-        self.option_data = option_data
 
 
     def update_collar_pnl(self, backtest_main_df: pd.DataFrame):
         """
         Only calculates pnl of the option positions (i.e. excluding pnl from holding underlying asset)
         """
-        result_df = backtest_main_df.copy()
-        result_df['collar_cost'] = result_df['put_price_at_open'] - result_df['call_price_at_open']
-        result_df['collar_payoff'] = result_df['put_price_at_close'] - result_df['call_price_at_close']
-        result_df['collar_pnl'] = result_df['collar_payoff'] - result_df['collar_cost']
-        
-        return result_df
+        backtest_main_df['collar_cost'] = backtest_main_df['put_price_at_open'] - backtest_main_df['call_price_at_open']
+        backtest_main_df['collar_payoff'] = backtest_main_df['put_price_at_close'] - backtest_main_df['call_price_at_close']
+        backtest_main_df['collar_pnl'] = backtest_main_df['collar_payoff'] - backtest_main_df['collar_cost']
     
 
     @ACV.validate_asset_class
@@ -48,28 +45,30 @@ class ZeroCostCollar0DTE(Strategy):
         return data
     
 
-    def add_zero_cost_collar(self, backtest_main_df, zero_cost_search_config, bs_config, bar_multiplier, bar_timespan, price_type):
-        backtest_main_df['selected_call_strike'] = np.nan
-        backtest_main_df['call_price_at_open'] = np.nan
-        backtest_main_df['selected_put_strike'] = np.nan
-        backtest_main_df['put_price_at_open'] = np.nan
+    def find_zero_cost_collar(self, backtest_instance: Backtest):
 
-        for index, row in tqdm(backtest_main_df.iterrows(), total=backtest_main_df.shape[0], desc="Searching for zero-cost collar"):
-            spot_price = row['Open']
-            date = row['Date']
-            lower_value = spot_price * (1 + zero_cost_search_config['lower_bound'])
-            upper_value = spot_price * (1 + zero_cost_search_config['upper_bound'])
-            strikes = list(range(int(lower_value), int(upper_value) + 1))
-            price_dict = get_0DTE_open_price_given_strikes(self.underlying_asset, strikes, date, spot_price, bs_config, bar_multiplier, bar_timespan, price_type)
-            price_dict['call'] = [-price for price in price_dict['call']]
-            indices = find_indices_closest_to_zero_sum(np.array(price_dict['call']), np.array(price_dict['put']))
+        backtest_instance.main_df[['selected_call_strike', 'call_price_at_open', 
+                                   'selected_put_strike', 'put_price_at_open']] = np.nan
+        
+        for index, row in backtest_instance.main_df.iterrows():
+            daily_option_chain = backtest_instance.option_data[backtest_instance.option_data['main_df_index'] == index]
             
-            backtest_main_df.loc[index, 'selected_call_strike'] = price_dict['strikes'][indices[0]]
-            backtest_main_df.loc[index, 'call_price_at_open'] = -price_dict['call'][indices[0]]     # add a negative sign because we added a negative sign 4 lines above
-            backtest_main_df.loc[index, 'selected_put_strike'] = price_dict['strikes'][indices[1]]
-            backtest_main_df.loc[index, 'put_price_at_open'] = price_dict['put'][indices[1]]
+            call_options = daily_option_chain[daily_option_chain['option_type'] == 'call']
+            put_options = daily_option_chain[daily_option_chain['option_type'] == 'put']
             
-
+            call_prices = call_options['open_price'].values
+            put_prices = put_options['open_price'].values
+            
+            indices = find_indices_closest_to_zero_sum(-call_prices, put_prices)    # short call long put
+            
+            selected_call = call_options.iloc[indices[0]]
+            selected_put = put_options.iloc[indices[1]]
+            
+            backtest_instance.main_df.at[index, 'selected_call_strike'] = selected_call['strike']
+            backtest_instance.main_df.at[index, 'call_price_at_open'] = selected_call['open_price']
+            backtest_instance.main_df.at[index, 'selected_put_strike'] = selected_put['strike']
+            backtest_instance.main_df.at[index, 'put_price_at_open'] = selected_put['open_price']
+            
 
     def short_call_long_put(self, row_data):
         data = ZeroCostCollar0DTE.extract_data(row_data)

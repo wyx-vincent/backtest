@@ -1,7 +1,7 @@
 from .asset_class_validator import AssetClassValidator
 from .option_functions import blackscholes_price, blackscholes_mc, blackscholes_impv_scalar, blackscholes_impv
-# from .polygon_functions import Option, Stock
-from .utils import find_indices_closest_to_zero_sum, get_0DTE_open_price_given_strikes, calculate_strike, try_get_polygon_price, plot_distribution, convert_date_format
+from .polygon_functions import DataNotAvailableError, PolygonAPI
+from .utils import find_indices_closest_to_zero_sum, calculate_strike, plot_distribution, convert_date_format, generate_option_ticker, generate_option_ticker_vectorized
 
 __all__ = [
     'AssetClassValidator',
@@ -12,7 +12,9 @@ __all__ = [
     'calculate_strike',
     'plot_distribution',
     'convert_date_format',
-    'try_get_polygon_price',
-    'get_0DTE_open_price_given_strikes',
-    'find_indices_closest_to_zero_sum'
+    'find_indices_closest_to_zero_sum',
+    'generate_option_ticker',
+    'DataNotAvailableError',
+    'PolygonAPI',
+    'generate_option_ticker_vectorized'
 ]

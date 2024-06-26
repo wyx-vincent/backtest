@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 
 from utils import AssetClassValidator as ACV
@@ -32,11 +34,11 @@ class Portfolio:
 
     @property
     def cash(self):
-        return self._cash
+        return round(self._cash, 2)
     
     @property
     def cash_liability(self):
-        return self._cash_liability
+        return round(self._cash_liability, 2)
 
     @property
     def positions(self):
@@ -144,7 +146,7 @@ class Portfolio:
             self.transaction_history[date].append(f"bought {quantity} {asset} at {round(price, 4)} on {date}.")
         else:
             error = (f"Not enough buying power to buy {quantity} {asset} at {round(price, 4)} on {date}. "
-                     f"Available cash: {round(self._cash, 4)}, Required: {round(cash_needed, 4)}, Leverage: {leverage}")
+                     f"Available cash: {self.cash}, Required: {round(cash_needed, 2)}, Leverage: {leverage}")
             raise Exception(error)
 
 
@@ -177,7 +179,7 @@ class Portfolio:
             self.transaction_history[date].append(f"shorted {quantity} {asset} at {round(price, 4)} on {date}.")
         else:
             error = (f"Not enough cash to short {quantity} {asset} at {round(price, 4)} on {date}. "
-                     f"Available cash: {round(self._cash, 4)}, Required magin: {round(required_margin, 4)}, Leverage: {leverage}")
+                     f"Available cash: {self.cash}, Required magin: {round(required_margin, 2)}, Leverage: {leverage}")
             raise Exception(error)
         
 
@@ -203,7 +205,7 @@ class Portfolio:
         cash_required_to_cover = price * quantity - self._margin[asset_class][asset] * cover_ratio
         if self._cash < cash_required_to_cover:
             error3 = (f"Trying to cover short position in {asset} on {date}, but cash is not enough. "
-                        f"Total cash needed: {round(price * quantity, 4)}, margin account balance: {round(self._margin[asset_class][asset], 4)}, 'cash balance: {round(self._cash, 4)}")
+                        f"Total cash needed: {round(price * quantity, 2)}, margin account balance: {round(self._margin[asset_class][asset], 2)}, cash balance: {self.cash}")
             raise Exception(error3)
 
         # it's ok to release fund from margin account to cash account before calling 'buy' function, as we have checked we have enough cash above
@@ -212,7 +214,8 @@ class Portfolio:
         self.update_margin_account(asset_class, asset, -cash_released)
         self.buy(date, asset_class, asset, price, quantity)
         # delete the key and value in self._margin[asset_class] dictionary if the margin_balance is reduced to 0
-        self._margin[asset_class] = {some_asset: margin_balance for some_asset, margin_balance in self._margin[asset_class].items() if margin_balance != 0}
+        if not self.has_margin_account(asset_class, asset):
+            del self._margin[asset_class][asset]
 
 
     def get_port_value(self, asset_price_dict):
@@ -289,3 +292,14 @@ class Portfolio:
         self.record_nav()
         self.record_equity_exposure(price_dict, equity)
         self.record_cash_exposure()
+
+
+    def save_transaction_history_to_csv(self, filename='portfolio_transaction_history.csv'):
+
+        current_dir = os.getcwd()
+        file_path = os.path.join(current_dir, 'data', filename)
+
+        tx_df = pd.DataFrame(list(self.transaction_history.items()), columns=['Date', 'Transactions'])
+        temp_df = pd.DataFrame(tx_df['Transactions'].tolist()).add_prefix('Transaction ')
+        tx_df = pd.concat([tx_df['Date'], temp_df], axis=1)
+        tx_df.to_csv(file_path)
