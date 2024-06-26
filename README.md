@@ -49,7 +49,7 @@ At market open on `start_date`, the system will purchase an amount of equity (SP
 Note that, excluding cash, the weight of any other asset must not exceed 1, and the total sum of all asset weights must not surpass `collateral_ratio`. Non-compliance with these requirements will trigger a system error.
 
 
-### Strategies Configurations
+### Strategies Configuration
 
 `strategy_selected`: Specifies which strategy to use, with options: 1 or 2.
 
