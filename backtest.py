@@ -180,7 +180,7 @@ class Backtest:
                 
 
 
-    def get_option_price(self, underlying_ticker: str, bs_config: dict, strike_bound_config: dict=None, open_price_config: dict=None): 
+    def get_option_price(self, underlying_ticker: str, bs_config: dict, open_price_config, strike_bound_config: dict=None, ): 
         
         """
         Fetch the price of a 0DTE (Zero Days to Expiration) option at market open using the Polygon.io API.

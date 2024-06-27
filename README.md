@@ -58,7 +58,7 @@ Note that, excluding cash, the weight of any other asset must not exceed 1, and 
 
 Example: If the SPY's open price on a given day is $500, with `upper_bound` = 0.01 and `lower_bound` = -0.02, the desired strike price range will be between 490 and 505, inclusive of all integers within this interval. The system will fetch the price data for both call and put options with strikes in this range to facilitate the search for a zero-cost collar.
 
-Please note that absolute values of these bounds should not be very large. If they exceed 2%, the strike prices will be significantly distant from the day's SPY open price, which could lead to poor liquidity for these options whose price would be $0.01, and increase the volume of data the system needs to process and calculate.
+Please note that absolute values of these bounds should be moderate. If they exceed 0.02—meaning the strike prices are distant from the day's SPY open price-it could result in getting a collar with call and put with poor liquidity. The price of such options would be around $0.01 or simulated by the system and it's not realistic to trade them. It also increases the volume of data the system needs to process.
 
 `strike_selection_config`: Configurations for selecting call and put strike prices in **Strategy 2**
 - `base_price`:         The base price type from which strike prices are calculated. Set to `'Open'`.
@@ -99,3 +99,6 @@ If option price data is not available on Polygon.io at any point during backtest
 
 Cboe didn’t offer SPY 0DTE every day before Nov 17. 2022. If you backtest with 0DTE options before this date, it's likely that the requested option price is calculated using the Black-Scholes Model. Reference: https://cdn.cboe.com/resources/product_update/2022/Cboe-Options-to-List-SPY-and-QQQ-Tuesday-and-Thursday-Expiring-Weekly-Options.pdf  
 
+
+## Findings
+1. The smaller the range restricted by the 'lower_bound' and 'upper_bound' in 'zero_cost_search_config', the better the hedging effect.

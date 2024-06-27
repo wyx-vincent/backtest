@@ -32,7 +32,7 @@ class Strategy:
         for option_type in ['call', 'put']:
             multiplier = self.option_selection_rules[option_type + '_K_multiplier']
             method = self.option_selection_rules[option_type + '_K_method']
-            addition = self.option_selection_rules[option_type + '_K_addition']
+            addition = self.option_selection_rules[option_type + '_K_adjust']
     
             strikes = backtest_instance.main_df[self.option_selection_rules['base_price']].apply(
                 lambda base: calculate_strike(base, multiplier, addition, method)
@@ -61,7 +61,7 @@ Archived methods
         for option_type in ['call', 'put']:
             multiplier = selection_rules[option_type + '_K_multiplier']
             method = selection_rules[option_type + '_K_method']
-            addition = selection_rules[option_type + '_K_addition']
+            addition = selection_rules[option_type + '_K_adjust']
     
             strikes = result_df[selection_rules['base_price']].apply(
                 lambda base: calculate_strike(base, multiplier, addition, method)

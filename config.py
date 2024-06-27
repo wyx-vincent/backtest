@@ -1,31 +1,31 @@
-start_date = '2022-07-01'
+start_date = '2022-12-01'
 end_date = '2024-06-25'
 
 # Portfolio Configuration
 initial_portfolio_nominal_value = 1e6
 collateral_ratio = 1
 portolio_weights_config = {
-    'equity': 0.5,
-    'cash': 0.5,
+    'equity': 0.8,
+    'cash': 0.2,
 }
 
 strategy_selected = 1
 
 # For Strategy 1
 zero_cost_search_config = {
-    'upper_bound': 0.01,
-    'lower_bound': -0.01
+    'upper_bound': 0.005,
+    'lower_bound': -0.005
 }
 
 # For Strategy 2
 strike_selection_config = {
     'base_price': 'Open',
 
-    'put_K_multiplier': 0.97,
+    'put_K_multiplier': 0.99,
     'put_K_method': 'floor',
     'put_K_adjust': 0,
 
-    'call_K_multiplier': 1.03,
+    'call_K_multiplier': 1.02,
     'call_K_method': 'floor',
     'call_K_adjust': 0
 }
