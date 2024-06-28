@@ -4,7 +4,7 @@ One of the objectives of this project is to provide a general framework for back
 
 <br>
 
-# Innovative Market Fund (IMMF) 
+# Innovative Money Market Fund (IMMF) 
 
 ## Introduction
 The core objective of this project is to investigate whether we can create a new form of money market fund, where the NAV never drops below $1.00 (specifically, never below $0.995), by holding SP500 ETFs (SPY) long-term, related short-term or long-term options (0DTE, LEAPS, etc.), as well as cash and cash equivalents (invested in traditional MMF). This fund can be used to track the value of U.S. dollars while providing investors with exposure to SP500. Currently, this project does not account for the legal requirements and regulatory restrictions.
